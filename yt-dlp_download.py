@@ -1,3 +1,20 @@
+"""
+yt-dlp 自動更新＆ダウンロードツール
+
+【コマンド実行例】
+# 1. 通常の動画ダウンロード (最高画質)
+python yt-dlp_download.py "https://youtube.com/watch?v=..."
+
+# 2. MP3形式でのダウンロード (音声のみ)
+python yt-dlp_download.py "https://youtube.com/watch?v=..." --mp3
+
+# 3. 曲名だけ指定してMP3ダウンロード
+python yt-dlp_download.py "https://youtube.com/watch?v=..." --mp3 -t "My Favorite Song"
+
+# 4. 曲名とアーティスト名を両方指定してMP3ダウンロード
+python yt-dlp_download.py "https://youtube.com/watch?v=..." --mp3 -t "First Love" -a "宇多田ヒカル"
+"""
+
 import subprocess
 import argparse
 import sys
@@ -24,7 +41,12 @@ def main():
     # 実行前に依存ツールのチェック
     check_dependencies()
 
-    parser = argparse.ArgumentParser(description="yt-dlp 自動更新＆ダウンロードツール")
+    # RawTextHelpFormatterを指定することで、epilog（追加の説明文）の改行を維持してヘルプに表示させます
+    parser = argparse.ArgumentParser(
+        description="yt-dlp 自動更新＆ダウンロードツール",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=__doc__  # ファイル先頭のDocstringをヘルプメッセージの末尾に表示
+    )
     parser.add_argument("url", help="ダウンロードしたいURL")
     parser.add_argument("--mp3", action="store_true", help="MP3形式でダウンロードする場合に指定")
     parser.add_argument("-t", "--title", help="曲名（ファイル名、タイトル、アルバム名に設定されます）")
