@@ -1,11 +1,19 @@
 import subprocess
 import argparse
 import sys
+import shutil
+
+def check_dependencies():
+    """依存コマンドの存在チェック"""
+    if shutil.which("ffmpeg") is None:
+        print("エラー: ffmpegがインストールされていないか、パスが通っていません。")
+        print("動画の結合やMP3への変換、メタデータの付与にはffmpegが必要です。")
+        print("インストールし、環境変数(PATH)を通してから再実行してください。")
+        sys.exit(1)
 
 def run_cmd(cmd):
     """コマンドを実行するヘルパー関数"""
     try:
-        # リスト形式で渡すことで、OSごとのエスケープ処理をsubprocessに任せる
         is_shell = isinstance(cmd, str)
         subprocess.run(cmd, shell=is_shell, check=True)
     except subprocess.CalledProcessError as e:
@@ -13,11 +21,12 @@ def run_cmd(cmd):
         sys.exit(1)
 
 def main():
+    # 実行前に依存ツールのチェック
+    check_dependencies()
+
     parser = argparse.ArgumentParser(description="yt-dlp 自動更新＆ダウンロードツール")
     parser.add_argument("url", help="ダウンロードしたいURL")
     parser.add_argument("--mp3", action="store_true", help="MP3形式でダウンロードする場合に指定")
-    
-    # 追加した引数
     parser.add_argument("-t", "--title", help="曲名（ファイル名、タイトル、アルバム名に設定されます）")
     parser.add_argument("-a", "--artist", help="アーティスト名（参加アーティスト、アルバムアーティストに設定されます）")
     
@@ -25,24 +34,21 @@ def main():
 
     # 1. インストール確認 ＆ アップデート
     print("yt-dlpの確認と更新を行っています...")
-    run_cmd(["pip", "install", "-U", "yt-dlp"])
+    # sys.executableを利用して、現在実行中のPython環境（仮想環境）にインストールする
+    run_cmd([sys.executable, "-m", "pip", "install", "-U", "yt-dlp", "--quiet"])
 
     # 2. ダウンロード処理
     print("\n準備完了。ダウンロードを開始します。")
     if args.mp3:
         print(f"[{args.url}] を MP3 でダウンロード中...")
         
-        # コマンドをリストで組み立てる
         cmd = ["yt-dlp", "-x", "--audio-format", "mp3"]
         
-        # ファイル名の指定
         if args.title:
             cmd.extend(["-o", f"{args.title}.%(ext)s"])
             
-        # メタデータの指定 (ffmpegに渡す引数を構築)
         pp_args = []
         if args.title:
-            # ダブルクォーテーションが含まれる場合の構文エラー防止
             safe_title = args.title.replace('"', '')
             pp_args.append(f'-metadata title="{safe_title}"')
             pp_args.append(f'-metadata album="{safe_title}"')
@@ -53,7 +59,6 @@ def main():
             pp_args.append(f'-metadata album_artist="{safe_artist}"')
             
         if pp_args:
-            # yt-dlpの仕様に合わせて、postprocessor-argsは一つの文字列として渡す
             cmd.extend(["--postprocessor-args", " ".join(pp_args)])
             
         cmd.append(args.url)
